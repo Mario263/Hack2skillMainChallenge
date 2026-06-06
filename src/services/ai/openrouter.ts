@@ -12,13 +12,22 @@ import { logger } from "@/lib/logger";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 
+// Primary: NVIDIA Nemotron (free, reasoning-capable) on OpenRouter.
+// Fallbacks remain for resilience — if the free model is rate-limited or the
+// key can't reach them, the service still degrades gracefully.
 const MODEL_CHAIN = [
+  "nvidia/nemotron-3-super-120b-a12b:free",
   "openai/gpt-4o-mini",
   "anthropic/claude-3-haiku",
-  "google/gemini-flash-1.5",
 ];
 
-const TIMEOUT_MS = 20_000;
+// Enable model reasoning (chain-of-thought) on supported models.
+const REASONING = { enabled: true } as const;
+
+// Reasoning models can be slower and consume more output tokens, so allow a
+// longer timeout and a larger completion budget than a plain chat model.
+const TIMEOUT_MS = 45_000;
+const MAX_TOKENS = 1500;
 const MAX_RETRIES_PER_MODEL = 1;
 
 export interface ChatMessage {
@@ -49,13 +58,15 @@ async function callModel(
       "Content-Type": "application/json",
       "HTTP-Referer":
         process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-      "X-Title": "Mindful — Student Wellness Tracker",
+      // Header values must be Latin-1 (ByteString) — keep this ASCII-only.
+      "X-Title": "Mindful - Student Wellness Tracker",
     },
     body: JSON.stringify({
       model,
       messages,
       temperature: 0.6,
-      max_tokens: 600,
+      max_tokens: MAX_TOKENS,
+      reasoning: REASONING,
     }),
   });
 
@@ -65,9 +76,15 @@ async function callModel(
   }
 
   const data = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
+    choices?: {
+      message?: { content?: string; reasoning?: string };
+    }[];
   };
-  const content = data.choices?.[0]?.message?.content?.trim();
+  const message = data.choices?.[0]?.message;
+  // Reasoning models return the chain-of-thought separately in `reasoning`;
+  // we only use the final `content`. Fall back to reasoning text only if the
+  // model returned no content at all.
+  const content = (message?.content ?? message?.reasoning ?? "").trim();
   if (!content) throw new Error(`OpenRouter ${model}: empty response`);
   return content;
 }
