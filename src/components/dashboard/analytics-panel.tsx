@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo } from "react";
 import {
   Bar,
   BarChart,
@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { apiFetch } from "@/lib/api-client";
+import { useFetch } from "@/hooks/useFetch";
 import {
   Card,
   CardContent,
@@ -38,23 +38,11 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-export function AnalyticsPanel({ refreshKey }: { refreshKey: number }) {
-  const [data, setData] = useState<AnalyticsDTO | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    apiFetch<{ data: AnalyticsDTO }>("/api/analytics?range=30")
-      .then((r) => {
-        if (active) setData(r.data);
-      })
-      .catch(() => void 0)
-      .finally(() => active && setLoading(false));
-    return () => {
-      active = false;
-    };
-  }, [refreshKey]);
+function AnalyticsPanelImpl({ refreshKey }: { refreshKey: number }) {
+  const { data, loading } = useFetch<AnalyticsDTO>(
+    "/api/analytics?range=30",
+    [refreshKey],
+  );
 
   if (loading) {
     return (
@@ -176,3 +164,6 @@ export function AnalyticsPanel({ refreshKey }: { refreshKey: number }) {
     </Card>
   );
 }
+
+// Memoized: re-renders only when refreshKey changes (a real data refresh).
+export const AnalyticsPanel = memo(AnalyticsPanelImpl);

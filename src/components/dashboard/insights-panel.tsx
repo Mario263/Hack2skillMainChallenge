@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { toast } from "sonner";
 import { Sparkles, ShieldAlert, CalendarDays } from "lucide-react";
 import { apiFetch, HttpError } from "@/lib/api-client";
@@ -27,7 +27,7 @@ const KINDS = [
   { kind: "weekly", label: "Weekly", icon: CalendarDays },
 ] as const;
 
-export function InsightsPanel() {
+function InsightsPanelImpl() {
   const [insight, setInsight] = useState<InsightDTO | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -104,3 +104,6 @@ export function InsightsPanel() {
     </Card>
   );
 }
+
+// Memoized: takes no props, so it never needs to re-render from the parent.
+export const InsightsPanel = memo(InsightsPanelImpl);

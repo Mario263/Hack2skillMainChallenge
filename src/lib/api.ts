@@ -6,6 +6,9 @@ import { rateLimit } from "@/lib/rate-limit";
 import { logger, newRequestId } from "@/lib/logger";
 
 export class ApiError extends Error {
+  /** Seconds the client should wait before retrying (set for 429s). */
+  retryAfter?: number;
+
   constructor(
     public status: number,
     message: string,
@@ -65,7 +68,7 @@ export function enforceRateLimit(
   if (!result.success) {
     const retryAfter = Math.ceil((result.resetAt - Date.now()) / 1000);
     const err = new ApiError(429, "Rate limit exceeded. Please slow down.", "rate_limited");
-    (err as ApiError & { retryAfter: number }).retryAfter = retryAfter;
+    err.retryAfter = retryAfter;
     throw err;
   }
   return result;
@@ -114,8 +117,7 @@ function translateError(
     if (e.status >= 500) logger.error("request.error", { ...base, err: e.message });
     else logger.warn("request.rejected", { ...base, code: e.code, status: e.status });
     const res = error(e.status, e.message, e.code);
-    const retryAfter = (e as ApiError & { retryAfter?: number }).retryAfter;
-    if (retryAfter) res.headers.set("Retry-After", String(retryAfter));
+    if (e.retryAfter) res.headers.set("Retry-After", String(e.retryAfter));
     res.headers.set("x-request-id", requestId);
     return res;
   }

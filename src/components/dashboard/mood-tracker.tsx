@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useState } from "react";
 import { toast } from "sonner";
 import { MOODS, COMMON_TRIGGERS, moodMeta } from "@/lib/constants";
-import { apiFetch } from "@/lib/api-client";
+import { useFetch } from "@/hooks/useFetch";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,23 +20,13 @@ interface Props {
   submit: (type: "mood", payload: Record<string, unknown>) => string;
 }
 
-export function MoodTracker({ refreshKey, submit }: Props) {
+function MoodTrackerImpl({ refreshKey, submit }: Props) {
   const [mood, setMood] = useState<number | null>(null);
   const [stress, setStress] = useState(5);
   const [note, setNote] = useState("");
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [custom, setCustom] = useState("");
-  const [recent, setRecent] = useState<MoodLogDTO[]>([]);
-
-  useEffect(() => {
-    let active = true;
-    apiFetch<{ data: MoodLogDTO[] }>("/api/mood?limit=5")
-      .then((r) => active && setRecent(r.data))
-      .catch(() => void 0);
-    return () => {
-      active = false;
-    };
-  }, [refreshKey]);
+  const recent = useFetch<MoodLogDTO[]>("/api/mood?limit=5", [refreshKey]).data ?? [];
 
   function toggleTrigger(label: string, category: string) {
     setSelected((prev) => {
@@ -205,3 +195,7 @@ export function MoodTracker({ refreshKey, submit }: Props) {
     </Card>
   );
 }
+
+// Memoized: props (refreshKey, submit) are stable, so this only re-renders on
+// an actual data refresh — not on every offline-status change in the parent.
+export const MoodTracker = memo(MoodTrackerImpl);

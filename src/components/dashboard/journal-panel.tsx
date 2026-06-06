@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { apiFetch } from "@/lib/api-client";
+import { useFetch } from "@/hooks/useFetch";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,12 +27,12 @@ const sentimentColor: Record<string, string> = {
   neutral: "text-muted-foreground",
 };
 
-export function JournalPanel({ refreshKey, submit }: Props) {
+function JournalPanelImpl({ refreshKey, submit }: Props) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [entries, setEntries] = useState<JournalDTO[]>([]);
   const [savedDraft, setSavedDraft] = useState(false);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const entries = useFetch<JournalDTO[]>("/api/journal?limit=10", [refreshKey]).data ?? [];
 
   // Restore autosaved draft on mount.
   useEffect(() => {
@@ -61,16 +61,6 @@ export function JournalPanel({ refreshKey, submit }: Props) {
       if (draftTimer.current) clearTimeout(draftTimer.current);
     };
   }, [title, content]);
-
-  useEffect(() => {
-    let active = true;
-    apiFetch<{ data: JournalDTO[] }>("/api/journal?limit=10")
-      .then((r) => active && setEntries(r.data))
-      .catch(() => void 0);
-    return () => {
-      active = false;
-    };
-  }, [refreshKey]);
 
   function save() {
     if (!content.trim()) {
@@ -154,3 +144,7 @@ export function JournalPanel({ refreshKey, submit }: Props) {
     </Card>
   );
 }
+
+// Memoized: stable props mean this re-renders only on a real data refresh,
+// not on every offline-status change in the parent.
+export const JournalPanel = memo(JournalPanelImpl);
