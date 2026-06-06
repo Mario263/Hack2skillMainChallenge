@@ -1,0 +1,147 @@
+// Prisma schema for the AI Mental Wellness Tracker.
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js (NextAuth v5) models
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  moodLogs      MoodLog[]
+  triggers      Trigger[]
+  journals      JournalEntry[]
+  insights      Insight[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Domain models
+// ---------------------------------------------------------------------------
+
+/// 1 = Burned Out ... 5 = Great
+model MoodLog {
+  id        String   @id @default(cuid())
+  userId    String
+  mood      Int // 1..5
+  stress    Int // 1..10
+  note      String?  @db.Text
+  /// client-generated id for offline de-duplication
+  clientId  String?
+  createdAt DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  triggers Trigger[]
+
+  @@unique([userId, clientId])
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([mood])
+}
+
+model Trigger {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String
+  category  String   @default("custom")
+  moodLogId String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moodLog MoodLog? @relation(fields: [moodLogId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([label])
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?
+  content   String   @db.Text
+  sentiment String? // positive | neutral | negative
+  score     Float? // -1.0 .. 1.0
+  clientId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clientId])
+  @@index([userId])
+  @@index([userId, createdAt])
+}
+
+model Insight {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String // summary | burnout | weekly | recommendation
+  title     String
+  body      String   @db.Text
+  severity  String   @default("info") // info | warning | critical
+  model     String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([kind])
+}
