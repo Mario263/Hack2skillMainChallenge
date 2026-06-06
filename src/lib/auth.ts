@@ -12,7 +12,14 @@ declare module "next-auth" {
   }
 }
 
-const devLoginEnabled = process.env.ENABLE_DEV_LOGIN === "true";
+// Dev-login is a passwordless fallback for local development only. Hard-disable
+// it in any production/preview deployment regardless of the flag, so a stray
+// ENABLE_DEV_LOGIN=true (e.g. a leaked .env) can never weaken production auth.
+const isDeployed =
+  process.env.VERCEL_ENV === "production" ||
+  process.env.VERCEL_ENV === "preview" ||
+  process.env.NODE_ENV === "production";
+const devLoginEnabled = process.env.ENABLE_DEV_LOGIN === "true" && !isDeployed;
 const googleConfigured =
   !!process.env.AUTH_GOOGLE_ID && !!process.env.AUTH_GOOGLE_SECRET;
 

@@ -1,0 +1,12 @@
+# Never upload local env files to Vercel — runtime env comes from the
+# Project's Environment Variables, not bundled files.
+.env
+.env.*
+!.env.example
+
+# Local-only artifacts
+.git
+node_modules
+.next
+coverage
+*.tsbuildinfo
