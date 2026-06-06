@@ -11,6 +11,7 @@ import { insightKindSchema } from "@/lib/validators";
 import {
   wellnessSuggestions,
   burnoutCheck,
+  CRISIS_RESPONSE,
 } from "@/services/ai/openrouter";
 
 export const runtime = "nodejs";
@@ -34,6 +35,22 @@ export const POST = handle(async (req) => {
 
   const { kind } = await parseBody(req, insightKindSchema);
   const { snapshot } = await buildAnalytics(user.id, 14);
+
+  // Safety first: a crisis signal overrides every other kind of insight and
+  // never goes through the model — show the deterministic support message.
+  if (snapshot.crisisFlag) {
+    const insight = await prisma.insight.create({
+      data: {
+        userId: user.id,
+        kind: "burnout",
+        title: "You don't have to face this alone",
+        body: CRISIS_RESPONSE,
+        severity: "critical",
+        model: null,
+      },
+    });
+    return json({ data: insight }, { status: 201 });
+  }
 
   if (snapshot.entries === 0) {
     return json({

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { MoodSnapshot } from "@/services/ai/openrouter";
+import { detectCrisisLanguage, type MoodSnapshot } from "@/services/ai/openrouter";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -105,15 +105,38 @@ export async function buildAnalytics(
       )
     : 0;
 
+  const recentNotes = moods
+    .map((m) => m.note)
+    .filter((n): n is string => !!n)
+    .slice(-5);
+
+  // Consecutive days (ending today) with at least one mood log.
+  let streakDays = 0;
+  for (let i = 0; i < rangeDays; i++) {
+    const key = dayKey(new Date(Date.now() - i * DAY));
+    if (moodByDay.has(key)) streakDays++;
+    else break;
+  }
+
+  // Coarse burnout-risk band derived from sustained mood/stress signals.
+  const burnoutRisk: "Low" | "Moderate" | "High" = moods.length
+    ? avgStress >= 8 || avgMood <= 2
+      ? "High"
+      : avgStress >= 6 || avgMood <= 3
+        ? "Moderate"
+        : "Low"
+    : "Low";
+
   const snapshot: MoodSnapshot = {
     avgMood,
     avgStress,
     entries: moods.length,
     topTriggers: triggers.map((t) => t.label),
-    recentNotes: moods
-      .map((m) => m.note)
-      .filter((n): n is string => !!n)
-      .slice(-5),
+    recentNotes,
+    burnoutRisk,
+    streakDays,
+    // Safety signal scanned from free-text notes.
+    crisisFlag: detectCrisisLanguage(recentNotes),
   };
 
   return {
