@@ -59,8 +59,3 @@ export const insightKindSchema = z.object({
     .enum(["summary", "burnout", "weekly", "recommendation"])
     .default("summary"),
 });
-
-export const paginationSchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(30),
-  cursor: z.string().optional(),
-});

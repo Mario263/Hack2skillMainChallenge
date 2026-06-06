@@ -25,10 +25,13 @@ export function CardHeader({
 
 export function CardTitle({
   className,
+  as: Tag = "h3",
   ...props
-}: React.HTMLAttributes<HTMLHeadingElement>) {
+}: React.HTMLAttributes<HTMLHeadingElement> & {
+  as?: "h1" | "h2" | "h3" | "h4";
+}) {
   return (
-    <h3
+    <Tag
       className={cn("text-base font-semibold tracking-tight", className)}
       {...props}
     />

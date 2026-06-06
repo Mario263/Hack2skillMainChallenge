@@ -48,7 +48,9 @@ export function LoginForm({
         <div className="mx-auto mb-2 flex size-11 items-center justify-center rounded-full bg-primary/10">
           <HeartPulse className="size-6 text-primary" aria-hidden />
         </div>
-        <CardTitle className="text-xl">Welcome to Mindful</CardTitle>
+        <CardTitle as="h1" className="text-xl">
+          Welcome to Mindful
+        </CardTitle>
         <CardDescription>Sign in to track your wellness journey.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

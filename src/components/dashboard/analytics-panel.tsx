@@ -100,7 +100,7 @@ export function AnalyticsPanel({ refreshKey }: { refreshKey: number }) {
         <div>
           <p className="mb-2 text-sm font-medium">Mood & stress trend</p>
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={trend} margin={{ left: -20, right: 8, top: 4 }}>
+            <LineChart accessibilityLayer data={trend} margin={{ left: -20, right: 8, top: 4 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis
                 dataKey="date"
@@ -144,6 +144,7 @@ export function AnalyticsPanel({ refreshKey }: { refreshKey: number }) {
             <p className="mb-2 text-sm font-medium">Top triggers</p>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart
+                accessibilityLayer
                 data={data.triggerFrequency}
                 margin={{ left: -20, right: 8 }}
               >

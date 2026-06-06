@@ -451,7 +451,7 @@ export async function analyzeSentiment(content: string): Promise<{
 const NEGATIVE = [
   "stress", "anxious", "anxiety", "burnout", "tired", "exhausted", "fail",
   "failure", "scared", "afraid", "lonely", "hopeless", "cry", "panic",
-  "overwhelmed", "pressure", "can't", "cannot", "hate", "worthless", "worthless",
+  "overwhelmed", "pressure", "can't", "cannot", "hate", "worthless",
 ];
 const POSITIVE = [
   "happy", "calm", "confident", "good", "great", "proud", "hopeful", "relaxed",

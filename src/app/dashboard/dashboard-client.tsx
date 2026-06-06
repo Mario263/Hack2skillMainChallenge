@@ -1,12 +1,30 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import dynamic from "next/dynamic";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { OfflineIndicator } from "@/components/dashboard/offline-indicator";
 import { MoodTracker } from "@/components/dashboard/mood-tracker";
 import { JournalPanel } from "@/components/dashboard/journal-panel";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
-import { AnalyticsPanel } from "@/components/dashboard/analytics-panel";
+
+// Recharts is heavy; load the analytics panel only on the client, after the
+// rest of the dashboard is interactive, to keep the initial bundle small.
+const AnalyticsPanel = dynamic(
+  () =>
+    import("@/components/dashboard/analytics-panel").then(
+      (m) => m.AnalyticsPanel,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="h-72 animate-pulse rounded-[--radius-lg] border border-border bg-card"
+        aria-hidden
+      />
+    ),
+  },
+);
 
 export function DashboardClient({ name }: { name: string }) {
   const [refreshKey, setRefreshKey] = useState(0);
